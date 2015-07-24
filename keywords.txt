@@ -1,0 +1,12 @@
+# Syntax Coloring Map For TempHygroTX868
+
+# Class (KEYWORD1)
+
+TempHygroTX868	KEYWORD1
+
+# Public Methods and Functions
+
+setup	KEYWORD2
+setAddress	KEYWORD2
+send	KEYWORD2
+getPause	KEYWORD2
