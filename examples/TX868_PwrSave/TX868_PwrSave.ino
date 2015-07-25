@@ -1,21 +1,22 @@
 /*
- * Production code to simulate a S300 sensor.
+ * Production code to build a weather sensor/transmitter 
+ * similar to the S300 by ELV.
  *
- * It records temperature and humidity with a DHT22 sensor
- * and send these values with the TX868.
- * The address may be configured with a DIP switch.
- * The processor is put into power down sleep and waked up
- * by the watchdog periodically to reduce the power consumption.
+ * It measures temperature and humidity with a DHT22 sensor
+ * and transmits these values using the TX868.
+ * The address of the transmitter may be configured with a DIP switch.
+ * The processor is put into power down sleep and waked up 
+ * by the watchdog timer periodically to reduce power consumption.
  *
- * Software setup:
- *   DHT library from markruys is required: 
- *   https://github.com/markruys/arduino-DHT.git
+ * Required libraries:
+ *   - TempHygroTX868: https://github.com/skaringa/TempHygroTX868
+ *   - DHT: https://github.com/markruys/arduino-DHT
  *   
  * Hardware setup: 
  *   - TX868 Data pin connected to digital pin 5
  *   - DHT11 Data pin connected to digital pin 6
- *   - 3 DIP switches connected between digital pins 7, 8, 9 
- *     at one side and ground at the other side
+ *   - 3 DIP switches are connected to digital pins 7, 8, 9 with one contact
+ *     and to ground with the other contact
  */
 
 
@@ -29,11 +30,19 @@
 
 DHT dht;
 TempHygroTX868 tx;
+
+// transmission timer:
+// it holds the number of seconds remaining until the next transmission
 volatile int nextTxTimer;
 
+// pin of build-in signal LED
 #define LED 13
 
+// lowest pin of DIP switch
 #define SWITCH 7
+
+// you may define DEBUG macro here
+// to get debug output at the serial line
 
 void setup()
 {
@@ -50,29 +59,30 @@ void setup()
   nextTxTimer = 0;
   
   /* Setup the Watchdog timer */
-  // clear the reset flag.
+  // clear the reset flag
   MCUSR &= ~(1<<WDRF);
-  
   // enable configuration changes
   WDTCSR |= (1<<WDCE) | (1<<WDE);
-
-  // set new watchdog timeout prescaler value
-  WDTCSR = 1<<WDP0 | 1<<WDP3; // 8.0 seconds
-  
-  // Enable the WD interrupt
+  // set new watchdog timeout prescaler value to maximum
+  WDTCSR = 1<<WDP0 | 1<<WDP3; 
+  // Enable the watchdog interrupt
   WDTCSR |= _BV(WDIE);
 }
 
 void loop()
 {
+  // are we required to send?
   if (nextTxTimer <= 9) {
+    // yes - delay remaining time
     delay(nextTxTimer * 1000);
+    // reset time to next transmission
 #ifdef DEBUG
     nextTxTimer = 30;    
 #else
     nextTxTimer = tx.getPause();
 #endif
 
+    // read address from DIP switch
     byte addr = readSwitch();
 #ifdef DEBUG
     Serial.print(addr);
@@ -80,13 +90,16 @@ void loop()
 #endif
     
     tx.setAddress(addr);
+    // read sensor and transmit
     sendData();
-    pwrDownSleep();
-  } else {
-    pwrDownSleep();
-  }
+  } 
+  // go into power down sleep
+  pwrDownSleep();
 }
 
+/*
+ * Read address from DIP switch
+ */
 byte readSwitch()
 {
   pinMode(SWITCH, INPUT_PULLUP);
@@ -108,6 +121,9 @@ byte readSwitch()
   return val;
 }
 
+/*
+ * Read data from sensor and transmit.
+ */
 void sendData() 
 {
   digitalWrite(LED, HIGH);
@@ -136,23 +152,28 @@ void sendData()
   digitalWrite(LED, LOW);
 }
 
-// interrupt service routine triggered by watchdog
+/*
+ * Interrupt service routine triggered by watchdog.
+ */
 ISR(WDT_vect)
 {
   // Watchdog oscillator freq is about 116 kHz
   // at 3 V and 25 °C
   // Therefore time between interrupts is
-  // 1,048,576 / 116,000 = 9.039 seconds
+  // 1,048,576 / 116,000 = 9.039 seconds.
+  // So decrement the transmission timer by this value.
   nextTxTimer -= 9;
 }
 
-// go into power down mode
+/*
+ * Go into power down mode
+ */
 void pwrDownSleep()
 {
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
   sleep_mode();
-  // Sleeping until watchdog bites
+  // At this point the CPU is sleeping until watchdog bites
   sleep_disable();
   power_all_enable();
 }

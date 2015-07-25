@@ -1,7 +1,10 @@
 /*
  * Sample program to test the TX868.
  *
- * It sends fixed values for address, temperature, and humidity.
+ * It transmits fixed values for address, temperature, and humidity.
+ *
+ * Required libraries:
+ *   TempHygroTX868: https://github.com/skaringa/TempHygroTX868
  * 
  * Hardware setup: 
  *   TX868 Data pin connected to digital pin 5
@@ -13,7 +16,7 @@ TempHygroTX868 tx;
 
 void setup()
 {
-  tx.setup(5); // transmitter is at data pin 5
+  tx.setup(5); // TX868 is at data pin 5
 }
 
 void loop()
