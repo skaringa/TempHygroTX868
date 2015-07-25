@@ -31,7 +31,7 @@ For all options, see [TempHygroTX868.h][header]. The [examples][example] directo
 
 ## Installation
 
-* [Download][download] the zip file.
+* Download TempHygroTX868.zip from [releases page][release].
 * Follow the steps described at [Installing Additional Arduino Libraries](https://www.arduino.cc/en/guide/libraries).
 
 ## License
@@ -53,5 +53,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 [header]: https://github.com/skaringa/TempHygroTX868/blob/master/TempHygroTX868.h "Header file"
 [example]: https://github.com/skaringa/TempHygroTX868/blob/master/examples "Examples"
-[download]: https://github.com/skaringa/TempHygroTX868/master.zip "Download library"
+[release]: https://github.com/skaringa/TempHygroTX868/releases/latest
 
