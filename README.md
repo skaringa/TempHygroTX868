@@ -27,7 +27,10 @@ The communication protocol is compatible to ELV sensors like the S 300 and ASH 2
       delay((unsigned long)tx.getPause() * 1000UL);
     }
 
-For all options, see [TempHygroTX868.h][header]. The [examples][example] directory contains several examples including full production code to build a weather sensor/transmitter similar to the S300.
+For all options, see [TempHygroTX868.h][header]. The [examples][example] directory contains several examples including full production code to build a weather sensor/transmitter similar to the S300:
+
+![Wireless temperature and humidity sensor](https://www.kompf.de/tech/images/rftemp_comp_annot.png)
+
 
 ## Installation
 
