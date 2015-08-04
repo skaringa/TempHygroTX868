@@ -170,10 +170,16 @@ ISR(WDT_vect)
  */
 void pwrDownSleep()
 {
+  byte adcsra = ADCSRA;
+  ADCSRA = 0;  // disable the ADC - saves 80 µA
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
-  sleep_mode();
+  cli(); // stop interrupts
+  sleep_bod_disable(); // disable brown-out detection
+  sei(); // enable interrupts
+  sleep_cpu();
   // At this point the CPU is sleeping until watchdog bites
   sleep_disable();
   power_all_enable();
+  ADCSRA = adcsra; // restore ADCSRA
 }
