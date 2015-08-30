@@ -2,7 +2,7 @@
  * Production code to build a weather sensor/transmitter 
  * similar to the S300 by ELV.
  *
- * It measures temperature and humidity with a DHT22 sensor
+ * It measures temperature and humidity with a HTU21D sensor
  * and transmits these values using the TX868.
  * The address of the transmitter may be configured with a DIP switch.
  * The processor is put into power down sleep and waked up 
@@ -10,25 +10,26 @@
  *
  * Required libraries:
  *   - TempHygroTX868: https://github.com/skaringa/TempHygroTX868
- *   - DHT: https://github.com/markruys/arduino-DHT
+ *   - SparkFunHTU21D: https://github.com/sparkfun/SparkFun_HTU21D_Breakout_Arduino_Library
  *   
  * Hardware setup: 
  *   - TX868 Data pin connected to digital pin 5
- *   - DHT11 Data pin connected to digital pin 6
+ *   - HTU21D SDA connected to A4 and SCL to A5
  *   - 3 DIP switches are connected to digital pins 7, 8, 9 with one contact
  *     and to ground with the other contact
  */
 
 
 #include <TempHygroTX868.h>
-#include <DHT.h>
+#include <Wire.h>
+#include <SparkFunHTU21D.h>
 
 
 #include <avr/sleep.h>
 #include <avr/power.h>
 
 
-DHT dht;
+HTU21D htu;
 TempHygroTX868 tx;
 
 // transmission timer:
@@ -44,15 +45,16 @@ volatile int nextTxTimer;
 // you may define DEBUG macro here
 // to get debug output at the serial line
 
+
 void setup()
 {
 #ifdef DEBUG
   Serial.begin(9600);
   Serial.println();
-  Serial.println("Address\tStatus\tHumidity (%)\tTemperature (C)");
+  Serial.println("Address\tHumidity (%)\tTemperature (C)");
 #endif
 
-  dht.setup(6, DHT::DHT22); // sensor is at data pin 6
+  htu.begin();
   tx.setup(5); // transmitter is at data pin 5
   pinMode(LED, OUTPUT); // signal LED
   
@@ -127,27 +129,20 @@ byte readSwitch()
 void sendData() 
 {
   digitalWrite(LED, HIGH);
-  for (int i = 0; i < 5; ++i) {
-    // try 5 times to get a valid reading from DHT
-    delay(dht.getMinimumSamplingPeriod());
-  
-    float humidity = dht.getHumidity();
-    float temperature = dht.getTemperature();
+  float humidity = htu.readHumidity();
+  float temperature = htu.readTemperature();
  
 #ifdef DEBUG
-    Serial.print(dht.getStatusString());
-    Serial.print("\t");
-    Serial.print(humidity);
-    Serial.print("\t");
-    Serial.println(temperature);
+  Serial.print(humidity);
+  Serial.print("\t");
+  Serial.println(temperature);
 #endif
-    
-    delay(100);
-    
-    if (DHT::ERROR_NONE == dht.getStatus()) {
-      tx.send(temperature, humidity);
-      break; // valid reading - exit loop
-    }
+  
+  delay(100);
+  
+  if (humidity < 900 && temperature < 900) {
+    // valid reading
+    tx.send(temperature, humidity);
   }
   digitalWrite(LED, LOW);
 }
