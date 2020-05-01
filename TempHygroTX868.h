@@ -5,8 +5,12 @@
  * S 300 and ASH 2200, therefore the data may be received by weather
  * stations like USB-WDE 1, WS 200/300, and IPWE 1 manufactured by ELV 
  * (http://www.elv.de).
+ * The library has been extended to implement the old ELV sensor
+ * transmission protocol V1.1 as well. This should support 
+ * Thermo/Hygro sensors like the AS2000 and ASH2000 which are using the
+ * 433 MHz transmitter HFS-300.
  * 
- * Copyright 2015 Martin Kompf
+ * Copyright 2015, 2020 Martin Kompf
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,12 +40,16 @@
  */
 class TempHygroTX868 {
 public:
+  static const byte PROT_V11 = 11;
+  static const byte PROT_V12 = 12;
+
   /*
    * Setup the controller.
    * This should be called once during setup() routine.
    * Parameter pin: The digitial pin number at which the TX868 is connected.
+   * Parameter protocol: (Optional) The protocol to use. One of PROT_V11 or PROT_V12 (default).
    */
-  void setup(byte pin);
+  void setup(byte pin, byte protocol = PROT_V12);
 
   /*
    * Sets the address of the transmitter.
@@ -73,6 +81,10 @@ private:
   byte pin;
   byte addr;
   unsigned long nextSlope;
+  unsigned int t1, t0;
+  int prefixLen;
+  int repeatCount;
+  byte protocol;
 };
 
 #endif

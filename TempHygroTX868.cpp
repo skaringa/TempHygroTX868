@@ -5,8 +5,12 @@
  * S 300 and ASH 2200, therefore the data may be received by weather
  * stations like USB-WDE 1, WS 200/300, and IPWE 1 manufactured by ELV 
  * (http://www.elv.de).
+ * The library has been extended to implement the old ELV sensor
+ * transmission protocol V1.1 as well. This should support 
+ * Thermo/Hygro sensors like the AS2000 and ASH2000 which are using the
+ * 433 MHz transmitter HFS-300.
  * 
- * Copyright 2015 Martin Kompf
+ * Copyright 2015, 2020 Martin Kompf
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,12 +28,25 @@
 
 #include "TempHygroTX868.h"
 
-void TempHygroTX868::setup(byte pin) {
+void TempHygroTX868::setup(byte pin, byte protocol) {
   this->pin = pin;
   this->addr = 0;
+  this->protocol = protocol;
   pinMode(pin, OUTPUT);
   digitalWrite(pin, LOW);
   nextSlope = 0;
+  if (protocol == PROT_V11) {
+    this->t1 = 610;
+    this->t0 = 1221;
+    this->prefixLen = 16;
+    this->repeatCount = 3;
+  } 
+  else { // PROT_V12
+    this->t1 = 366;
+    this->t0 = 854;
+    this->prefixLen = 10;
+    this->repeatCount = 1;
+  }
 }
 
 void TempHygroTX868::setAddress(byte addr) {
@@ -54,7 +71,14 @@ void TempHygroTX868::send(float temp, float humidity) {
   }
   
   // send data with transmitter
-  sendData(data, 8);
+  int count = repeatCount;
+  do {
+    sendData(data, 8);
+    if (--count == 0) {
+      break;
+    }
+    delay(100);
+  } while(1);
 }
 
 int TempHygroTX868::getPause() {
@@ -67,12 +91,12 @@ void TempHygroTX868::sendBit(byte value) {
   }
   
   digitalWrite(pin, HIGH);
-  nextSlope = micros() + 1220;
+  nextSlope = micros() + t1 + t0;
   
   if (value) {
-    delayMicroseconds(366);
+    delayMicroseconds(t1);
   } else {
-    delayMicroseconds(854);
+    delayMicroseconds(t0);
   }
   digitalWrite(pin, LOW);
 }
@@ -91,7 +115,7 @@ void TempHygroTX868::sendData(byte* data, byte length) {
   byte* nibble = &data[0];
   
   // sync
-  for (byte i = 0; i < 10; ++i) {
+  for (byte i = 0; i < prefixLen; ++i) {
     sendBit(0);
   }
   // start bit
@@ -106,7 +130,9 @@ void TempHygroTX868::sendData(byte* data, byte length) {
   
   // check sum
   sendNibble(check);
-  sendNibble(sum + check + 5);
+  if (protocol == PROT_V12) {
+    sendNibble(sum + check + 5);
+  }
   
   // ensure that tx is off
   digitalWrite(pin, LOW);

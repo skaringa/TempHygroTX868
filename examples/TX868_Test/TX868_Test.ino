@@ -1,5 +1,5 @@
 /*
- * Sample program to test the TX868.
+ * Sample program to test the HFS-300.
  *
  * It transmits fixed values for address, temperature, and humidity.
  *
@@ -16,7 +16,9 @@ TempHygroTX868 tx;
 
 void setup()
 {
-  tx.setup(5); // TX868 is at data pin 5
+  // TX868 is at data pin 5
+  // Use the old protocol V1.1
+  tx.setup(5, TempHygroTX868::PROT_V11);
 }
 
 void loop()
